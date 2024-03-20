@@ -1,0 +1,70 @@
+version: "3.8"
+
+services:
+  app: 
+    container_name: ranger_clubhouse_api
+    # build:
+    #   dockerfile: "./Dockerfile"
+    image: ranger-clubhouse-api:dev
+    user: ":1420"
+    depends_on:
+      - database
+    ports:
+      - "8000:80"
+    environment:
+      APP_NAME: "${APP_NAME:-Rangers Secret Clubhouse}"
+      APP_ENV: "${APP_ENV:-local}"
+      APP_KEY: "${APP_KEY}"
+      APP_URL: "${APP_URL:-http://localhost:8000}"
+      RANGER_CLUBHOUSE_ENVIRONMENT: "${RANGER_CLUBHOUSE_ENVIRONMENT:-Staging}"
+      RANGER_DB_HOST_NAME: "${RANGER_DB_HOST_NAME:-database}"
+      RANGER_DB_DATABASE_NAME: "${RANGER_DB_DATABASE_NAME:-rangers}"
+      RANGER_DB_USER_NAME: "${RANGER_DB_USER_NAME:-rangers}"
+      RANGER_DB_PASSWORD: "${RANGER_DB_PASSWORD:-donothing}"
+      RANGER_DB_CONNECTION: "${RANGER_DB_CONNECTION:-mysql}"
+      RANGER_DB_PORT: "${RANGER_DB_PORT:-3306}"
+    volumes:
+      - "./:/var/www/application"
+      - "./docker/nginx-default.conf:/etc/nginx/http.d/default.conf"
+    working_dir: /var/www/application
+    # command: "php artisan serve"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1512M
+        reservations:
+          cpus: '1'
+          memory: 1512M
+
+  database:
+    container_name: ranger_clubhouse_database
+    image: mariadb:10.5.12
+    volumes:
+      - database:/var/lib/mysql
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: "${RANGER_DB_DATABASE_NAME:-rangers}"
+      MARIADB_USER: "${RANGER_DB_USER_NAME:-rangers}"
+      MARIADB_PASSWORD: "${RANGER_DB_PASSWORD:-donothing}"
+      MARIADB_ROOT_PASSWORD: "${RANGER_DB_ROOT_PASSWORD:-donothingdonothing}"
+
+  adminer:
+    container_name: ranger_clubhouse_adminer
+    image: adminer
+    environment:
+      ADMINER_DEFAULT_SERVER: ranger_clubhouse_database
+    depends_on:
+      - database
+    restart: unless-stopped
+    ports:
+      - 8089:8080
+
+volumes:
+  database:
+
+networks:
+  default:
+    name: "${DOCKER_RANGERS_NETWORK:-ranger-clubhouse}"
